@@ -35,6 +35,7 @@ message InputOutput {
   required string device = 2;
   required bool is_argument_input = 3 [default = false];
   optional string arg_name = 4;
+  optional bool nchw = 5;
 }
 
 // stores info about a single operator

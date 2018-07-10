@@ -360,6 +360,23 @@ string Pipeline::SerializeToProtobuf() const {
     out->set_name(output.first);
     out->set_device(output.second);
     out->set_is_argument_input(false);
+
+    // Determining the output layout
+    const auto& it = std::find_if(op_specs_.begin(), op_specs_.end(),
+        [&output](const std::pair<std::string, OpSpec> &el) {
+          for (int i = 0; i < el.second.NumOutput(); ++i) {
+            if (el.second.Output(i).find(output.first) != std::string::npos) {
+              return true;
+            }
+          }
+          return false;
+        });
+    const OpSpec &output_op_spec = it->second;
+    bool output_nchw = false;
+    if (output_op_spec.HasArgument("output_layout")) {
+      output_nchw = output_op_spec.GetArgument<DALITensorLayout>("output_layout") == DALI_NCHW;
+    }
+    out->set_nchw(output_nchw);
   }
   pipe.set_device_id(this->device_id_);
   string output = pipe.SerializeAsString();

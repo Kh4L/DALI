@@ -40,7 +40,7 @@ namespace tf = tensorflow;
       } catch (std::runtime_error& e) {                                            \
         std::string error = "DALI " + std::string(#FUNC)                           \
                             + " failed: " + std::string(e.what());                 \
-        std::cout << error << std::endl;                                            \
+        std::cout << error << std::endl;                                           \
         context->SetStatus(tf::errors::Internal(error));                           \
        return;                                                                     \
       }                                                                            \
@@ -54,6 +54,21 @@ tf::TensorShape DaliToShape(int64_t* ns) {
   return ts;
 }
 
+inline bool IsOutputNCHW(const std::string &output_layout, const std::string &serialized_pipeline) {
+  if (output_layout == "NCHW" || output_layout == "nchw") {
+    return true;
+  }
+  if (output_layout == "NHWC" || output_layout == "nhwc") {
+    return false;
+  }
+
+  dali_proto::PipelineDef def;
+  def.ParseFromString(serialized_pipeline);
+
+  bool is_nchw = def.pipe_outputs()[0].nchw();
+  return is_nchw;
+}
+
 REGISTER_OP("Dali")
   .Attr("serialized_pipeline: string")
   .Attr("batch_size: int = -1")
@@ -61,6 +76,7 @@ REGISTER_OP("Dali")
   .Attr("width: int = 0")
   .Attr("num_threads: int = -1")
   .Attr("device_id: int = -1")
+  .Attr("output_layout: string = 'default'")
   .Attr("image_type: {float, int32, half} = DT_FLOAT")
   .Attr("label_type: {float, int32, half} = DT_INT32")
   .Output("batch: image_type")
@@ -69,10 +85,18 @@ REGISTER_OP("Dali")
     int batch_size;
     int height;
     int width;
+    std::string serialized_pipeline;
+    std::string output_layout;
     TF_RETURN_IF_ERROR(c->GetAttr("batch_size", &batch_size));
     TF_RETURN_IF_ERROR(c->GetAttr("height", &height));
     TF_RETURN_IF_ERROR(c->GetAttr("width", &width));
-    c->set_output(0, c->MakeShape({batch_size, height, width, 3}));
+    TF_RETURN_IF_ERROR(c->GetAttr("serialized_pipeline", &serialized_pipeline));
+    TF_RETURN_IF_ERROR(c->GetAttr("output_layout", &output_layout));
+    if (IsOutputNCHW(output_layout, serialized_pipeline)) {
+      c->set_output(0, c->MakeShape({batch_size, 3, height, width}));
+    } else {
+      c->set_output(0, c->MakeShape({batch_size, height, width, 3}));
+    }
     return tf::Status::OK();
   });
 
