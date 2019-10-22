@@ -778,12 +778,12 @@ PYBIND11_MODULE(backend_impl, m) {
 
 #define DALI_OPSPEC_ADDARG(T) \
     .def("AddArg", \
-        [](OpSpec *spec, const string& name, T v) -> OpSpec& { \
+        [](OpSpec *spec, const string& name, T v, T = T{}) -> OpSpec& { \
         spec->AddArg(name, v); \
         return *spec; \
       }, py::return_value_policy::reference_internal) \
     .def("AddArg", \
-        [](OpSpec *spec, const string& name, std::vector<T> v) -> OpSpec& { \
+        [](OpSpec *spec, const string& name, std::vector<T> v, T = T{}) -> OpSpec& { \
         spec->AddArg(name, v); \
         return *spec; \
       }, py::return_value_policy::reference_internal)
@@ -807,7 +807,7 @@ PYBIND11_MODULE(backend_impl, m) {
     DALI_OPSPEC_ADDARG(TFFeature)
 #endif
     .def("AddArg",
-        [](OpSpec *spec, const string &name, py::object obj) -> OpSpec& {
+        [](OpSpec *spec, const string &name, py::object obj, int = 0) -> OpSpec& {
           DALI_FAIL("Unsupported argument type with name " + name);
           return *spec;
         }, py::return_value_policy::reference_internal)

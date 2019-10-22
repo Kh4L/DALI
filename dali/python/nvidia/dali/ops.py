@@ -280,8 +280,10 @@ def python_op_factory(name, op_device = "cpu"):
                     if not value:
                         raise RuntimeError("List arguments need to have at least 1 element.")
                 dtype = self._schema.GetArgumentType(key)
-                converted_value = _type_convert_value(dtype, value)
-                self._spec.AddArg(key, converted_value)
+                converted_value, default_value_of_underlying_type = _type_convert_value(dtype, value)
+                # In case of an empty list as arg, we need the default value of the underlying type
+                # to disambiguate the overloaded call of AddArg
+                self._spec.AddArg(key, converted_value, default_value_of_underlying_type)
 
         @property
         def spec(self):

@@ -32,20 +32,20 @@ def _not_implemented(val):
     raise NotImplementedError()
 
 _known_types = {
-        DALIDataType.INT32 : ("int", int),
-        DALIDataType.INT64 : ("int", int),
-        DALIDataType.FLOAT : ("float", float),
-        DALIDataType.BOOL : ("bool", bool),
-        DALIDataType.STRING : ("str", str),
-        DALIDataType._BOOL_VEC : ("bool or list of bool", _to_list(bool)),
-        DALIDataType._INT32_VEC : ("int or list of int",_to_list(int)),
-        DALIDataType._STRING_VEC : ("str or list of str", _to_list(str)),
-        DALIDataType._FLOAT_VEC : ("float or list of float", _to_list(float)),
-        DALIDataType.IMAGE_TYPE : ("nvidia.dali.types.DALIImageType", lambda x: DALIImageType(int(x))),
-        DALIDataType.DATA_TYPE : ("nvidia.dali.types.DALIDataType", lambda x: DALIDataType(int(x))),
-        DALIDataType.INTERP_TYPE : ("nvidia.dali.types.DALIInterpType", lambda x: DALIInterpType(int(x))),
-        DALIDataType.TENSOR_LAYOUT : ("nvidia.dali.types.TensorLayout", lambda x: TensorLayout(str(x))),
-        DALIDataType.PYTHON_OBJECT : ("object", lambda x: x)
+        DALIDataType.INT32 : ("int", int, int()),
+        DALIDataType.INT64 : ("int", int, int()),
+        DALIDataType.FLOAT : ("float", float, float()),
+        DALIDataType.BOOL : ("bool", bool, bool()),
+        DALIDataType.STRING : ("str", str, str()),
+        DALIDataType._BOOL_VEC : ("bool or list of bool", _to_list(bool), bool()),
+        DALIDataType._INT32_VEC : ("int or list of int",_to_list(int), int()),
+        DALIDataType._STRING_VEC : ("str or list of str", _to_list(str), str()),
+        DALIDataType._FLOAT_VEC : ("float or list of float", _to_list(float), float()),
+        DALIDataType.IMAGE_TYPE : ("nvidia.dali.types.DALIImageType", lambda x: DALIImageType(int(x)), None),
+        DALIDataType.DATA_TYPE : ("nvidia.dali.types.DALIDataType", lambda x: DALIDataType(int(x)), None),
+        DALIDataType.INTERP_TYPE : ("nvidia.dali.types.DALIInterpType", lambda x: DALIInterpType(int(x)), None),
+        DALIDataType.TENSOR_LAYOUT : ("nvidia.dali.types.TensorLayout", lambda x: TensorLayout(str(x)), None),
+        DALIDataType.PYTHON_OBJECT : ("object", lambda x: x, int())
         }
 if _tfrecord_support:
     _known_types[DALIDataType.FEATURE] = ("nvidia.dali.tfrecord.Feature", tfrec.Feature)
@@ -67,7 +67,11 @@ def _type_name_convert_to_string(dtype, is_tensor):
 def _type_convert_value(dtype, val):
     if dtype not in _known_types:
         raise RuntimeError(str(dtype) + " does not correspond to a known type.")
-    return _known_types[dtype][1](val)
+    _, python_type, default_value_of_underlying_type = _known_types[dtype]
+    converted_val = python_type(val)
+    if default_value_of_underlying_type is None:
+        default_value_of_underlying_type = converted_val
+    return converted_val, default_value_of_underlying_type
 
 class PipelineAPIType(object):
     """Pipeline API type
